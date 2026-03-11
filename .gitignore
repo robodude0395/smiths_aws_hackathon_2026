@@ -1,0 +1,13 @@
+*.docx
+*.xlsx
+*.pdf
+*.vsdx
+pre-day-brief
+
+# Secrets and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.pemkey
+*.key
