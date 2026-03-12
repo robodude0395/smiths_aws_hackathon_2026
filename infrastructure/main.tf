@@ -69,9 +69,15 @@ resource "aws_iam_role_policy" "lambda_s3_policy" {
         Effect = "Allow"
         Action = [
           "s3:PutObject",
-          "s3:PutObjectTagging"
+          "s3:PutObjectTagging",
+          "s3:GetObject",
+          "s3:GetObjectTagging",
+          "s3:ListBucket"
         ]
-        Resource = "${aws_s3_bucket.uploads.arn}/*"
+        Resource = [
+          "${aws_s3_bucket.uploads.arn}/*",
+          "${aws_s3_bucket.uploads.arn}"
+        ]
       },
       {
         Effect = "Allow"
@@ -86,11 +92,18 @@ resource "aws_iam_role_policy" "lambda_s3_policy" {
   })
 }
 
-# Package Lambda function
+# Package upload Lambda function
 data "archive_file" "lambda_zip" {
   type        = "zip"
   source_file = "../backend/lambda_function.py"
   output_path = "lambda_function.zip"
+}
+
+# Package list files Lambda function
+data "archive_file" "list_lambda_zip" {
+  type        = "zip"
+  source_file = "../backend/list_files_function.py"
+  output_path = "list_files_function.zip"
 }
 
 # Lambda function
@@ -110,9 +123,31 @@ resource "aws_lambda_function" "upload_handler" {
   }
 }
 
-# CloudWatch Log Group
+# Lambda function for listing files
+resource "aws_lambda_function" "list_files_handler" {
+  filename         = data.archive_file.list_lambda_zip.output_path
+  function_name    = "excel-list-files-handler"
+  role            = aws_iam_role.lambda_role.arn
+  handler         = "list_files_function.lambda_handler"
+  source_code_hash = data.archive_file.list_lambda_zip.output_base64sha256
+  runtime         = "python3.11"
+  timeout         = 30
+
+  environment {
+    variables = {
+      BUCKET_NAME = aws_s3_bucket.uploads.id
+    }
+  }
+}
+
+# CloudWatch Log Groups
 resource "aws_cloudwatch_log_group" "lambda_logs" {
   name              = "/aws/lambda/${aws_lambda_function.upload_handler.function_name}"
+  retention_in_days = 7
+}
+
+resource "aws_cloudwatch_log_group" "list_lambda_logs" {
+  name              = "/aws/lambda/${aws_lambda_function.list_files_handler.function_name}"
   retention_in_days = 7
 }
 
@@ -122,11 +157,17 @@ resource "aws_api_gateway_rest_api" "upload_api" {
   description = "API for Excel file upload to S3"
 }
 
-# API Gateway Resource
+# API Gateway Resources
 resource "aws_api_gateway_resource" "upload_resource" {
   rest_api_id = aws_api_gateway_rest_api.upload_api.id
   parent_id   = aws_api_gateway_rest_api.upload_api.root_resource_id
   path_part   = "upload"
+}
+
+resource "aws_api_gateway_resource" "files_resource" {
+  rest_api_id = aws_api_gateway_rest_api.upload_api.id
+  parent_id   = aws_api_gateway_rest_api.upload_api.root_resource_id
+  path_part   = "files"
 }
 
 # API Gateway Method - POST
@@ -210,7 +251,9 @@ resource "aws_api_gateway_deployment" "upload_deployment" {
 
   depends_on = [
     aws_api_gateway_integration.lambda_integration,
-    aws_api_gateway_integration.options_integration
+    aws_api_gateway_integration.options_integration,
+    aws_api_gateway_integration.list_lambda_integration,
+    aws_api_gateway_integration.files_options_integration
   ]
 
   lifecycle {
@@ -231,6 +274,11 @@ output "api_endpoint" {
   value       = "${aws_api_gateway_stage.upload_stage.invoke_url}/upload"
 }
 
+output "files_api_endpoint" {
+  description = "API Gateway endpoint for listing files"
+  value       = "${aws_api_gateway_stage.upload_stage.invoke_url}/files"
+}
+
 output "lambda_function_name" {
   description = "Lambda function name"
   value       = aws_lambda_function.upload_handler.function_name
@@ -244,4 +292,79 @@ output "s3_bucket" {
 output "s3_bucket_arn" {
   description = "S3 bucket ARN"
   value       = aws_s3_bucket.uploads.arn
+}
+
+# API Gateway Method - GET /files
+resource "aws_api_gateway_method" "files_get" {
+  rest_api_id   = aws_api_gateway_rest_api.upload_api.id
+  resource_id   = aws_api_gateway_resource.files_resource.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+# API Gateway Method - OPTIONS /files (for CORS)
+resource "aws_api_gateway_method" "files_options" {
+  rest_api_id   = aws_api_gateway_rest_api.upload_api.id
+  resource_id   = aws_api_gateway_resource.files_resource.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+# API Gateway Integration - GET /files
+resource "aws_api_gateway_integration" "list_lambda_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.upload_api.id
+  resource_id             = aws_api_gateway_resource.files_resource.id
+  http_method             = aws_api_gateway_method.files_get.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.list_files_handler.invoke_arn
+}
+
+# API Gateway Integration - OPTIONS /files (for CORS)
+resource "aws_api_gateway_integration" "files_options_integration" {
+  rest_api_id = aws_api_gateway_rest_api.upload_api.id
+  resource_id = aws_api_gateway_resource.files_resource.id
+  http_method = aws_api_gateway_method.files_options.http_method
+  type        = "MOCK"
+
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+# API Gateway Method Response - OPTIONS /files
+resource "aws_api_gateway_method_response" "files_options_response" {
+  rest_api_id = aws_api_gateway_rest_api.upload_api.id
+  resource_id = aws_api_gateway_resource.files_resource.id
+  http_method = aws_api_gateway_method.files_options.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+}
+
+# API Gateway Integration Response - OPTIONS /files
+resource "aws_api_gateway_integration_response" "files_options_integration_response" {
+  rest_api_id = aws_api_gateway_rest_api.upload_api.id
+  resource_id = aws_api_gateway_resource.files_resource.id
+  http_method = aws_api_gateway_method.files_options.http_method
+  status_code = aws_api_gateway_method_response.files_options_response.status_code
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+}
+
+# Lambda permission for API Gateway - list files
+resource "aws_lambda_permission" "list_api_gateway_permission" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.list_files_handler.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.upload_api.execution_arn}/*/*"
 }

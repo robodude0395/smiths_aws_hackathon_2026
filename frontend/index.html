@@ -131,13 +131,113 @@
             width: 0%;
             transition: width 0.3s;
         }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s;
+            margin: 0;
+            width: auto;
+        }
+        .tab:hover {
+            color: #667eea;
+        }
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .files-list {
+            margin-top: 20px;
+        }
+        .file-item {
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        .file-item:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        .file-info {
+            flex: 1;
+        }
+        .file-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .file-meta {
+            font-size: 12px;
+            color: #666;
+        }
+        .download-btn {
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            width: auto;
+            margin: 0;
+        }
+        .download-btn:hover {
+            background: #5568d3;
+        }
+        .refresh-btn {
+            padding: 10px 20px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            width: auto;
+            margin-bottom: 15px;
+        }
+        .refresh-btn:hover {
+            background: #218838;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>📊 Excel Upload to S3</h1>
         
-        <form id="uploadForm">
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('upload')">Upload</button>
+            <button class="tab" onclick="switchTab('download')">Download Processed Files</button>
+        </div>
+        
+        <div id="uploadTab" class="tab-content active">
+            <form id="uploadForm">
             <div class="form-group">
                 <label for="programmeName">Programme Name *</label>
                 <input type="text" id="programmeName" required placeholder="Enter programme name">
@@ -168,16 +268,27 @@
             </div>
         </div>
     </div>
+    
+    <div id="downloadTab" class="tab-content">
+        <button class="refresh-btn" onclick="loadProcessedFiles()">🔄 Refresh List</button>
+        
+        <div class="files-list" id="filesList">
+            <div class="empty-state">Click "Refresh List" to load processed files</div>
+        </div>
+    </div>
+</div>
 
-    <script src="config.js"></script>
+    <script src="config.js?v=2"></script>
     <script>
         const API_ENDPOINT = CONFIG.API_ENDPOINT;
+        const FILES_API_ENDPOINT = CONFIG.FILES_API_ENDPOINT;
         
-        // Validate API endpoint is configured
+        // Validate API endpoints are configured
         if (!API_ENDPOINT || API_ENDPOINT === 'YOUR_API_GATEWAY_URL_HERE') {
             console.error('API endpoint not configured! Please update config.js');
         } else {
             console.log('API endpoint configured:', API_ENDPOINT);
+            console.log('Files API endpoint configured:', FILES_API_ENDPOINT);
         }
         
         const dropZone = document.getElementById('dropZone');
@@ -375,6 +486,116 @@
             status.className = 'status';
             progressBar.style.display = 'none';
             progressBarFill.style.width = '0%';
+        }
+        
+        // Tab switching
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            
+            // Load files when switching to download tab
+            if (tabName === 'download') {
+                loadProcessedFiles();
+            }
+        }
+        
+        // Load processed files
+        async function loadProcessedFiles() {
+            const filesList = document.getElementById('filesList');
+            
+            // Check if FILES_API_ENDPOINT is configured
+            if (!FILES_API_ENDPOINT || FILES_API_ENDPOINT === 'YOUR_API_GATEWAY_URL_HERE') {
+                filesList.innerHTML = '<div class="empty-state">❌ FILES_API_ENDPOINT not configured in config.js</div>';
+                console.error('FILES_API_ENDPOINT not set:', FILES_API_ENDPOINT);
+                return;
+            }
+            
+            filesList.innerHTML = '<div class="empty-state">⏳ Loading files...</div>';
+            
+            try {
+                const url = new URL(FILES_API_ENDPOINT);
+                url.searchParams.append('action', 'list');
+                
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load files');
+                }
+                
+                const data = await response.json();
+                
+                if (data.files.length === 0) {
+                    filesList.innerHTML = '<div class="empty-state">No processed files found</div>';
+                    return;
+                }
+                
+                filesList.innerHTML = '';
+                data.files.forEach(file => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+                    
+                    const fileName = file.key.split('/').pop();
+                    const lastModified = new Date(file.last_modified).toLocaleString();
+                    const sizeKB = (file.size / 1024).toFixed(2);
+                    
+                    fileItem.innerHTML = `
+                        <div class="file-info">
+                            <div class="file-name">📄 ${fileName}</div>
+                            <div class="file-meta">
+                                Programme: ${file.programme_name || 'N/A'} | 
+                                Uploaded by: ${file.uploaded_by || 'N/A'} | 
+                                Last modified: ${lastModified} | 
+                                Size: ${sizeKB} KB
+                            </div>
+                        </div>
+                        <button class="download-btn" onclick="downloadFile('${file.key}', '${fileName}')">
+                            ⬇️ Download
+                        </button>
+                    `;
+                    
+                    filesList.appendChild(fileItem);
+                });
+                
+            } catch (error) {
+                filesList.innerHTML = `<div class="empty-state">❌ Error loading files: ${error.message}</div>`;
+            }
+        }
+        
+        // Download file
+        async function downloadFile(fileKey, fileName) {
+            try {
+                const url = new URL(FILES_API_ENDPOINT);
+                url.searchParams.append('action', 'download');
+                url.searchParams.append('file_key', fileKey);
+                
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to get download URL');
+                }
+                
+                const data = await response.json();
+                
+                // Create temporary link and trigger download
+                const a = document.createElement('a');
+                a.href = data.download_url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+            } catch (error) {
+                alert(`Download failed: ${error.message}`);
+            }
         }
     </script>
 </body>

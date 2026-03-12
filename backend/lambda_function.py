@@ -62,7 +62,7 @@ def lambda_handler(event, context):
         
         # Sanitize programme_name for S3 path
         safe_programme_name = programme_name.replace('/', '_').replace('\\', '_')
-        s3_key = f"{safe_programme_name}/{timestamp}_{filename}"
+        s3_key = f"pending/{safe_programme_name}/{timestamp}_{filename}"
         
         # Generate pre-signed POST URL
         presigned_post = s3_client.generate_presigned_post(
