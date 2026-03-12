@@ -1,13 +1,24 @@
-*.docx
-*.xlsx
-*.pdf
-*.vsdx
-pre-day-brief
+# Terraform
+infrastructure/.terraform/
+infrastructure/*.tfstate
+infrastructure/*.tfstate.*
+infrastructure/.terraform.lock.hcl
+infrastructure/terraform.tfvars
+infrastructure/lambda_function.zip
 
-# Secrets and credentials
-.env
-.env.*
-!.env.example
-*.pem
-*.pemkey
-*.key
+# Frontend
+frontend/config.js
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+
+# OS
+.DS_Store
+*.swp
+*.swo
