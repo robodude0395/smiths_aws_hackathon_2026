@@ -22,6 +22,16 @@ resource "aws_s3_bucket" "uploads" {
   }
 }
 
+# Create S3 bucket for website hosting
+resource "aws_s3_bucket" "website" {
+  bucket = "comsheet-portal"
+
+  tags = {
+    Name        = "COMsheet Portal Website"
+    Environment = "Production"
+  }
+}
+
 # Enable versioning for the bucket
 resource "aws_s3_bucket_versioning" "uploads_versioning" {
   bucket = aws_s3_bucket.uploads.id
@@ -31,7 +41,7 @@ resource "aws_s3_bucket_versioning" "uploads_versioning" {
   }
 }
 
-# Block public access to the bucket
+# Block public access to the uploads bucket
 resource "aws_s3_bucket_public_access_block" "uploads_public_access" {
   bucket = aws_s3_bucket.uploads.id
 
@@ -39,6 +49,49 @@ resource "aws_s3_bucket_public_access_block" "uploads_public_access" {
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
+}
+
+# Enable website hosting on the website bucket
+resource "aws_s3_bucket_website_configuration" "website" {
+  bucket = aws_s3_bucket.website.id
+
+  index_document {
+    suffix = "index.html"
+  }
+
+  error_document {
+    key = "index.html"
+  }
+}
+
+# Allow public read access to website bucket
+resource "aws_s3_bucket_public_access_block" "website_public_access" {
+  bucket = aws_s3_bucket.website.id
+
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+# Bucket policy to allow public read
+resource "aws_s3_bucket_policy" "website_policy" {
+  bucket = aws_s3_bucket.website.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid       = "PublicReadGetObject"
+        Effect    = "Allow"
+        Principal = "*"
+        Action    = "s3:GetObject"
+        Resource  = "${aws_s3_bucket.website.arn}/*"
+      }
+    ]
+  })
+
+  depends_on = [aws_s3_bucket_public_access_block.website_public_access]
 }
 
 # Lambda execution role
@@ -292,6 +345,16 @@ output "s3_bucket" {
 output "s3_bucket_arn" {
   description = "S3 bucket ARN"
   value       = aws_s3_bucket.uploads.arn
+}
+
+output "website_url" {
+  description = "Website URL"
+  value       = "http://${aws_s3_bucket.website.bucket}.s3-website-${aws_s3_bucket.website.region}.amazonaws.com"
+}
+
+output "website_bucket" {
+  description = "Website bucket name"
+  value       = aws_s3_bucket.website.id
 }
 
 # API Gateway Method - GET /files
