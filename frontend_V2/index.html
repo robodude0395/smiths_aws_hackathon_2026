@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SAP Sales Order Automation</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+        h1 { color: #333; margin-bottom: 8px; font-size: 24px; text-align: center; }
+        .subtitle { color: #888; text-align: center; margin-bottom: 30px; font-size: 14px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; color: #555; font-weight: 500; font-size: 14px; }
+        input[type="text"] {
+            width: 100%; padding: 12px; border: 2px solid #e0e0e0;
+            border-radius: 6px; font-size: 14px; transition: border-color 0.3s;
+        }
+        input[type="text"]:focus { outline: none; border-color: #667eea; }
+        .drop-zone {
+            border: 2px dashed #ccc; border-radius: 8px; padding: 40px;
+            text-align: center; cursor: pointer; transition: all 0.3s; background: #fafafa;
+        }
+        .drop-zone:hover, .drop-zone.drag-over { border-color: #667eea; background: #f0f4ff; }
+        .drop-zone p { color: #666; margin-bottom: 10px; }
+        .drop-zone .file-name { color: #667eea; font-weight: 500; margin-top: 10px; }
+        input[type="file"] { display: none; }
+        button {
+            width: 100%; padding: 14px; background: #667eea; color: white; border: none;
+            border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer;
+            transition: background 0.3s; margin-top: 20px;
+        }
+        button:hover:not(:disabled) { background: #5568d3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .status { margin-top: 20px; padding: 15px; border-radius: 6px; display: none; }
+        .status.show { display: block; }
+        .status.processing { background: #fff3cd; color: #856404; }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .progress-bar { width: 100%; height: 8px; background: #e0e0e0; border-radius: 4px; margin-top: 10px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background: #667eea; width: 0%; transition: width 0.5s; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 30px; border-bottom: 2px solid #e0e0e0; }
+        .tab {
+            padding: 12px 24px; background: none; border: none;
+            border-bottom: 3px solid transparent; cursor: pointer;
+            font-size: 16px; font-weight: 500; color: #666;
+            transition: all 0.3s; margin: 0; width: auto;
+        }
+        .tab:hover { color: #667eea; }
+        .tab.active { color: #667eea; border-bottom-color: #667eea; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .files-list { margin-top: 20px; }
+        .file-item {
+            padding: 15px; border: 1px solid #e0e0e0; border-radius: 6px;
+            margin-bottom: 10px; display: flex; justify-content: space-between;
+            align-items: center; transition: all 0.3s;
+        }
+        .file-item:hover { border-color: #667eea; background: #f0f4ff; }
+        .file-info { flex: 1; }
+        .file-info .name { font-weight: 600; color: #333; margin-bottom: 5px; }
+        .file-info .meta { font-size: 12px; color: #666; }
+        .download-btn {
+            padding: 8px 16px; background: #667eea; color: white; border: none;
+            border-radius: 4px; cursor: pointer; font-size: 14px; width: auto; margin: 0;
+        }
+        .download-btn:hover { background: #5568d3; }
+        .refresh-btn {
+            padding: 10px 20px; background: #28a745; color: white; border: none;
+            border-radius: 6px; cursor: pointer; font-size: 14px; width: auto; margin-bottom: 15px;
+        }
+        .refresh-btn:hover { background: #218838; }
+        .empty-state { text-align: center; padding: 40px; color: #999; }
+        .step-indicator { display: flex; gap: 8px; margin-top: 12px; align-items: center; }
+        .step { font-size: 12px; padding: 4px 10px; border-radius: 12px; background: #e0e0e0; color: #666; }
+        .step.active { background: #667eea; color: white; }
+        .step.done { background: #28a745; color: white; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>📊 SAP Sales Order Automation</h1>
+    <p class="subtitle">Upload a COM Sheet → Create Master Contract & Sales Orders → Download updated file</p>
+
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('upload', this)">Upload & Process</button>
+        <button class="tab" onclick="switchTab('download', this)">Processed Files</button>
+    </div>
+
+    <div id="uploadTab" class="tab-content active">
+        <form id="uploadForm">
+            <div class="form-group">
+                <label for="programmeName">Programme Name *</label>
+                <input type="text" id="programmeName" required placeholder="e.g. Smiths Detection Phase 1">
+            </div>
+            <div class="form-group">
+                <label for="uploadedBy">Uploaded By *</label>
+                <input type="text" id="uploadedBy" required placeholder="Your name">
+            </div>
+            <div class="form-group">
+                <label>COM Sheet (.xlsx / .xlsm) *</label>
+                <div class="drop-zone" id="dropZone">
+                    <p>📁 Drag & drop your COM Sheet here</p>
+                    <p style="font-size: 12px; color: #999;">or click to browse (.xlsx, .xls, .xlsm)</p>
+                    <div class="file-name" id="fileName"></div>
+                </div>
+                <input type="file" id="fileInput" accept=".xlsx,.xls,.xlsm">
+            </div>
+            <button type="submit" id="uploadBtn">🚀 Process COM Sheet</button>
+        </form>
+
+        <div class="status" id="status">
+            <div id="statusMessage"></div>
+            <div class="progress-bar" id="progressBar" style="display:none;">
+                <div class="progress-bar-fill" id="progressFill"></div>
+            </div>
+            <div class="step-indicator" id="steps" style="display:none;">
+                <span class="step" id="stepUpload">Upload</span>
+                <span class="step" id="stepMaster">Master Contract</span>
+                <span class="step" id="stepSO">Sales Orders</span>
+                <span class="step" id="stepWrite">Write-back</span>
+                <span class="step" id="stepDone">Done</span>
+            </div>
+        </div>
+
+        <button id="downloadResultBtn" style="display:none; background:#28a745; margin-top:10px;"
+                onclick="downloadResult()">⬇️ Download Updated COM Sheet</button>
+    </div>
+
+    <div id="downloadTab" class="tab-content">
+        <button class="refresh-btn" onclick="loadFiles()">🔄 Refresh List</button>
+        <div class="files-list" id="filesList">
+            <div class="empty-state">Click "Refresh List" to load processed files</div>
+        </div>
+    </div>
+</div>
+
+<script src="config.js?v=3"></script>
+<script>
+    const API = CONFIG.API_ENDPOINT;
+    let currentJobId = null;
+    let pollTimer = null;
+
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileNameEl = document.getElementById('fileName');
+    const uploadForm = document.getElementById('uploadForm');
+    const uploadBtn = document.getElementById('uploadBtn');
+    let selectedFile = null;
+
+    // Drop zone
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault(); dropZone.classList.remove('drag-over');
+        if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', (e) => { if (e.target.files.length > 0) handleFile(e.target.files[0]); });
+
+    function handleFile(file) {
+        const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+        if (!['.xlsx', '.xls', '.xlsm'].includes(ext)) {
+            showStatus('error', '❌ Please select a valid Excel file (.xlsx, .xls, .xlsm)');
+            return;
+        }
+        selectedFile = file;
+        fileNameEl.textContent = '✓ ' + file.name;
+        hideStatus();
+    }
+
+    uploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const prog = document.getElementById('programmeName').value.trim();
+        const by = document.getElementById('uploadedBy').value.trim();
+        if (!prog || !by) { showStatus('error', '❌ Please fill in all fields'); return; }
+        if (!selectedFile) { showStatus('error', '❌ Please select a file'); return; }
+
+        uploadBtn.disabled = true;
+        document.getElementById('downloadResultBtn').style.display = 'none';
+        showStatus('processing', '⏳ Uploading file...');
+        showProgress(5);
+        setStep('stepUpload', 'active');
+
+        try {
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('programme_name', prog);
+            formData.append('uploaded_by', by);
+
+            const resp = await fetch(API + '/upload', { method: 'POST', body: formData });
+            if (!resp.ok) {
+                const err = await resp.json();
+                throw new Error(err.error || 'Upload failed');
+            }
+            const data = await resp.json();
+            currentJobId = data.job_id;
+            setStep('stepUpload', 'done');
+            showStatus('processing', '⏳ Processing started...');
+            pollStatus();
+        } catch (err) {
+            showStatus('error', '❌ ' + err.message);
+            uploadBtn.disabled = false;
+        }
+    });
+
+    function pollStatus() {
+        if (!currentJobId) return;
+        pollTimer = setInterval(async () => {
+            try {
+                const resp = await fetch(API + '/status/' + currentJobId);
+                const job = await resp.json();
+
+                showProgress(job.progress || 0);
+                showStatus('processing', '⏳ ' + (job.message || 'Processing...'));
+
+                // Update step indicators based on progress
+                if (job.progress >= 30) setStep('stepMaster', 'done');
+                if (job.progress >= 50) setStep('stepSO', 'active');
+                if (job.progress >= 90) { setStep('stepSO', 'done'); setStep('stepWrite', 'active'); }
+
+                if (job.status === 'complete') {
+                    clearInterval(pollTimer);
+                    setStep('stepWrite', 'done');
+                    setStep('stepDone', 'done');
+                    showStatus('success', '✅ ' + job.message);
+                    showProgress(100);
+                    document.getElementById('downloadResultBtn').style.display = 'block';
+                    uploadBtn.disabled = false;
+                } else if (job.status === 'error') {
+                    clearInterval(pollTimer);
+                    showStatus('error', '❌ ' + job.message);
+                    uploadBtn.disabled = false;
+                }
+            } catch (err) {
+                clearInterval(pollTimer);
+                showStatus('error', '❌ Lost connection to server');
+                uploadBtn.disabled = false;
+            }
+        }, 2000);
+    }
+
+    function downloadResult() {
+        if (currentJobId) {
+            window.location.href = API + '/download/' + currentJobId;
+        }
+    }
+
+    function showStatus(type, msg) {
+        const el = document.getElementById('status');
+        el.className = 'status show ' + type;
+        document.getElementById('statusMessage').innerHTML = msg;
+        document.getElementById('progressBar').style.display = 'block';
+        document.getElementById('steps').style.display = 'flex';
+    }
+    function hideStatus() {
+        document.getElementById('status').className = 'status';
+        document.getElementById('progressBar').style.display = 'none';
+        document.getElementById('steps').style.display = 'none';
+    }
+    function showProgress(pct) {
+        document.getElementById('progressFill').style.width = pct + '%';
+    }
+    function setStep(id, state) {
+        const el = document.getElementById(id);
+        el.className = 'step ' + state;
+    }
+
+    // Tab switching
+    function switchTab(name, btn) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById(name + 'Tab').classList.add('active');
+        if (name === 'download') loadFiles();
+    }
+
+    // Processed files list
+    async function loadFiles() {
+        const list = document.getElementById('filesList');
+        list.innerHTML = '<div class="empty-state">⏳ Loading...</div>';
+        try {
+            const resp = await fetch(API + '/files');
+            const data = await resp.json();
+            if (!data.files || data.files.length === 0) {
+                list.innerHTML = '<div class="empty-state">No processed files yet</div>';
+                return;
+            }
+            list.innerHTML = '';
+            data.files.forEach(f => {
+                const sizeKB = (f.size / 1024).toFixed(1);
+                const modified = new Date(f.last_modified).toLocaleString();
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.innerHTML = `
+                    <div class="file-info">
+                        <div class="name">📄 ${f.filename}</div>
+                        <div class="meta">${modified} · ${sizeKB} KB</div>
+                    </div>
+                    <button class="download-btn" onclick="dlFile('${f.filename}')">⬇️ Download</button>
+                `;
+                list.appendChild(div);
+            });
+        } catch (err) {
+            list.innerHTML = '<div class="empty-state">❌ Error: ' + err.message + '</div>';
+        }
+    }
+
+    function dlFile(fname) {
+        window.location.href = API + '/files/download?filename=' + encodeURIComponent(fname);
+    }
+</script>
+</body>
+</html>
