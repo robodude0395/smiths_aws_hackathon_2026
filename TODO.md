@@ -1,16 +1,13 @@
 # Pre-Hackathon Meeting TODO
 
-## Meeting Outcomes
-### Clarify main pain points in Smiths Detection’s contract and procurement process
+## Scope
 
 
-### Define scope and goals for the e-commerce solution (automation, digital contracts, procurement workflow)
+## Essential features for MVP
 
-### Identify essential features for MVP (order tracking, digital signatures, client portal)
+## Assign roles and responsibilities for the hackathon (tech, business, UX, etc.)
 
-### Assign roles and responsibilities for the hackathon (tech, business, UX, etc.)
-
-### Establish shared understanding of Smiths Detection’s requirements and constraints
+## Establish shared understanding of Smiths Detection’s requirements and constraints
 
 ### Outline rough project timeline and milestones for hackathon day
 
