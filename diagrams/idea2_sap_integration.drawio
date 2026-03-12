@@ -1,0 +1,91 @@
+<mxfile host="app.diagrams.net" modified="2026-03-12T00:00:00.000Z" agent="Kiro" version="24.0.0">
+  <diagram name="Idea 2: SAP S4HANA Integration" id="idea2">
+    <mxGraphModel dx="1422" dy="794" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Data Source Cluster -->
+        <mxCell id="source-cluster" value="Data Source" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;verticalAlign=top;fontSize=14;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="80" y="200" width="200" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- S3 Source -->
+        <mxCell id="s3-source" value="S3 Bucket&#xa;(Validated Sheets)" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#7AA116;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.s3_bucket;" vertex="1" parent="1">
+          <mxGeometry x="142" y="250" width="75" height="78" as="geometry" />
+        </mxCell>
+
+        <!-- Processing Pipeline Cluster -->
+        <mxCell id="pipeline-cluster" value="Processing Pipeline" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;verticalAlign=top;fontSize=14;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="360" y="140" width="520" height="300" as="geometry" />
+        </mxCell>
+
+        <!-- Validator -->
+        <mxCell id="validator" value="Sheet Validator" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#ED7100;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.lambda_function;" vertex="1" parent="1">
+          <mxGeometry x="400" y="250" width="78" height="78" as="geometry" />
+        </mxCell>
+
+        <!-- Transformer -->
+        <mxCell id="transformer" value="Data Transformer" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#ED7100;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.lambda_function;" vertex="1" parent="1">
+          <mxGeometry x="560" y="250" width="78" height="78" as="geometry" />
+        </mxCell>
+
+        <!-- Uploader -->
+        <mxCell id="uploader" value="SAP Uploader" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#ED7100;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.lambda_function;" vertex="1" parent="1">
+          <mxGeometry x="720" y="250" width="78" height="78" as="geometry" />
+        </mxCell>
+
+        <!-- Enterprise System Cluster -->
+        <mxCell id="enterprise-cluster" value="Enterprise System" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;verticalAlign=top;fontSize=14;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="960" y="200" width="240" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- SAP Database -->
+        <mxCell id="sap" value="SAP S4HANA&#xa;Database" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#C925D1;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.generic_database;" vertex="1" parent="1">
+          <mxGeometry x="1051" y="250" width="58" height="78" as="geometry" />
+        </mxCell>
+
+        <!-- Monitoring Cluster -->
+        <mxCell id="monitoring-cluster" value="Monitoring" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;verticalAlign=top;fontSize=14;fontStyle=1;align=center;" vertex="1" parent="1">
+          <mxGeometry x="960" y="460" width="240" height="180" as="geometry" />
+        </mxCell>
+
+        <!-- CloudWatch Logs -->
+        <mxCell id="logs" value="CloudWatch Logs" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#759C3E;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.cloudwatch_logs;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="500" width="68" height="68" as="geometry" />
+        </mxCell>
+
+        <!-- SNS Alerts -->
+        <mxCell id="alerts" value="SNS Alerts" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#E7157B;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.sns_topic;" vertex="1" parent="1">
+          <mxGeometry x="1100" y="500" width="70" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Connections -->
+        <mxCell id="edge1" edge="1" parent="1" source="s3-source" target="validator">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge2" edge="1" parent="1" source="validator" target="transformer">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge3" edge="1" parent="1" source="transformer" target="uploader">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge4" edge="1" parent="1" source="uploader" target="sap">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge5" edge="1" parent="1" source="uploader" target="logs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="edge6" edge="1" parent="1" source="logs" target="alerts">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
