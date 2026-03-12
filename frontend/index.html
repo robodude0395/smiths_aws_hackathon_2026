@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COMsheet Upload Portal - Smiths Detection</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <img src="Smiths_Detection_Logo.jpg" alt="Smiths Detection" class="navbar-logo">
+            <span class="navbar-brand-text">SMITHS DETECTION</span>
+        </div>
+        <div class="navbar-title">COMsheet Upload Portal</div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-container">
+        <div class="content-wrapper">
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('upload')">Upload</button>
+                <button class="tab" onclick="switchTab('download')">Download Processed Files</button>
+            </div>
+
+            <!-- Upload Tab -->
+            <div id="uploadTab" class="tab-content active">
+                <div class="card">
+                    <h1 class="section-header">Upload COMsheet</h1>
+                    <p class="section-subtitle">Upload a validated COMsheet for SAP processing</p>
+                    
+                    <form id="uploadForm">
+                        <div class="form-group">
+                            <label for="programmeName" class="form-label">Programme Name</label>
+                            <input type="text" id="programmeName" class="form-input" required placeholder="Enter programme name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="uploadedBy" class="form-label">Uploaded By</label>
+                            <input type="text" id="uploadedBy" class="form-input" required placeholder="Enter your name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="contractRef" class="form-label">Master Contract Reference</label>
+                            <input type="text" id="contractRef" class="form-input" required placeholder="Enter contract reference">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">COMsheet File</label>
+                            <div class="upload-zone" id="uploadZone">
+                                <div id="uploadPrompt">
+                                    <div class="upload-icon">📁</div>
+                                    <div class="upload-text">Drag and drop your COMsheet here</div>
+                                    <div class="upload-or">or</div>
+                                    <div class="upload-browse">Browse files</div>
+                                </div>
+                                <div id="fileInfo" class="file-info" style="display: none;">
+                                    <div class="file-name-display" id="fileNameDisplay"></div>
+                                    <div class="file-size-display" id="fileSizeDisplay"></div>
+                                    <div class="file-remove" onclick="clearFile()">✕ Remove</div>
+                                </div>
+                            </div>
+                            <input type="file" id="fileInput" class="file-input-hidden" accept=".xlsx,.xls,.xlsm">
+                        </div>
+                        
+                        <button type="submit" id="uploadBtn" class="btn-primary">UPLOAD TO S3</button>
+                    </form>
+                    
+                    <div class="status" id="status">
+                        <div class="status-box">
+                            <div class="status-title" id="statusTitle"></div>
+                            <div class="status-message" id="statusMessage"></div>
+                            <div class="status-path" id="statusPath" style="display: none;"></div>
+                            <div class="status-meta" id="statusMeta"></div>
+                            <div class="progress-bar" id="progressBar" style="display: none;">
+                                <div class="progress-bar-fill" id="progressBarFill"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Download Tab -->
+            <div id="downloadTab" class="tab-content">
+                <div class="card">
+                    <h1 class="section-header">Processed COMsheets</h1>
+                    <p class="section-subtitle">Download COMsheets that have been processed by SAP</p>
+                    
+                    <button class="btn-secondary" onclick="loadProcessedFiles()">🔄 REFRESH LIST</button>
+                    
+                    <div class="files-list" id="filesList">
+                        <div class="empty-state">Click "Refresh List" to load processed files</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-title">Smiths Detection — Programme Order Entry Tool</div>
+        <div class="footer-subtitle">Hackathon 2025</div>
+    </footer>
+
+    <script src="config.js?v=2"></script>
+    <script src="app.js"></script>
+</body>
+</html>
